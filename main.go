@@ -53,14 +53,19 @@ func main() {
 			log.Fatal().Err(err).Msg("failed to write config")
 		}
 	}
-	bridge := NewHuegoAdapter(c.BridgeHost, c.User)
+
+	bridge := NewHuegoAdapter(&HuegoAdapterDependencies{
+		Host:           c.BridgeHost,
+		User:           c.User,
+		playerLightMap: c.PlayerLightMap,
+	})
 
 	if lights {
-		log.Info().Interface("lights", bridge.GetStates())
+		log.Info().Interface("lights", bridge.getStates())
 		return
 	}
 
 	log.Info().Interface("configuredPlayers", c.PlayerLightMap).Send()
-	handler := NewHandler(bridge, c.PlayerLightMap)
+	handler := NewHandler(bridge)
 	handler.Run(fmt.Sprintf(":%d", c.Port))
 }

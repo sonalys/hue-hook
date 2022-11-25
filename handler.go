@@ -8,22 +8,17 @@ import (
 )
 
 type HUE interface {
-	SwitchLights(state bool, lights ...int)
-	GetStates(lights ...int) (states map[int]bool)
-	RestoreStates(states map[int]bool)
+	StartSession(playerID string)
+	StopSession(playerID string)
 }
 
 type Handler struct {
-	hue            HUE
-	lastState      map[int]bool
-	playerLightMap map[string][]int
+	hue HUE
 }
 
-func NewHandler(hue HUE, playerLightMap map[string][]int) *Handler {
+func NewHandler(hue HUE) *Handler {
 	return &Handler{
-		hue:            hue,
-		playerLightMap: playerLightMap,
-		lastState:      make(map[int]bool),
+		hue: hue,
 	}
 }
 
@@ -33,19 +28,16 @@ func (h *Handler) plexWebhook(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	lights := h.playerLightMap[payload.Player.UUID]
 	logger := log.With().
 		Str("event", string(payload.Event)).
 		Str("player_uuid", payload.Player.UUID).
-		Interface("lamps", lights).
 		Logger()
 	logger.Debug().Msg("received event")
 	switch payload.Event {
 	case StartEvent, ResumeEvent:
-		h.lastState = h.hue.GetStates(lights...)
-		h.hue.SwitchLights(false, lights...)
+		h.hue.StartSession(payload.Player.UUID)
 	case PauseEvent, StopEvent:
-		h.hue.RestoreStates(h.lastState)
+		h.hue.StopSession(payload.Player.UUID)
 	default:
 		logger.Error().Msgf("failed to handle event")
 	}

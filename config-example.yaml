@@ -1,0 +1,5 @@
+user: <HUE User>
+bridgeHost: <IP>
+port: 3304
+players:
+  <UUID>: [<LAMP ID>, <LAMP ID>]

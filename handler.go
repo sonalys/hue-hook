@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,10 +24,19 @@ func NewHandler(hue HUE) *Handler {
 }
 
 func (h *Handler) plexWebhook(c *gin.Context) {
-	payload, err := decodePayload(c)
-	if err != nil {
+	if err := c.Request.ParseMultipartForm(0); err != nil {
+		log.Err(err).Msgf("Error while reading form: %v\n", err)
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
+	}
+	var payload Payload
+	buf, hasPayload := c.Request.MultipartForm.Value["payload"]
+	if hasPayload {
+		if err := json.Unmarshal([]byte(buf[0]), &payload); err != nil {
+			log.Err(err).Msgf("Error while parsing json: %v\n", err)
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
 	}
 	logger := log.With().
 		Str("event", string(payload.Event)).
